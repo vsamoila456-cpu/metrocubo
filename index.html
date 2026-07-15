@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MetroCubo — Preventivo trasloco AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #141E28; --tape: #FFC400; --paper: #F6F5F1; --white: #FFFFFF;
+    --steel: #8A97A3; --line: #E3E1DA; --green: #1F8A4C; --red: #C0392B;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: 'Archivo', Arial, sans-serif; }
+  .display { font-family: 'Archivo Black', 'Arial Black', sans-serif; }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+  header { background: var(--ink); padding: 18px 20px 14px; }
+  .head-in { display: flex; justify-content: space-between; align-items: center; max-width: 560px; margin: 0 auto; }
+  .tape-strip { height: 6px; background: repeating-linear-gradient(90deg, var(--tape) 0 34px, var(--ink) 34px 38px); }
+  .tape-div { height: 10px; border-radius: 2px; margin: 4px 0 20px; background: repeating-linear-gradient(90deg, var(--tape) 0 34px, var(--ink) 34px 38px); }
+  main { max-width: 560px; margin: 0 auto; padding: 24px 20px 60px; }
+  h1 { font-family: 'Archivo Black', sans-serif; font-size: 26px; margin: 0 0 6px; line-height: 1.15; }
+  .sub { color: var(--steel); font-size: 14px; margin: 0 0 20px; }
+  .field-label { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--steel); margin-bottom: 6px; }
+  input[type=text], input[type=number], select {
+    width: 100%; padding: 12px 14px; font-size: 16px; font-family: 'Archivo', sans-serif;
+    border: 2px solid var(--line); border-radius: 8px; background: var(--white); color: var(--ink); outline: none;
+  }
+  input:focus, select:focus { border-color: var(--tape); }
+  label.fld { display: block; margin-bottom: 16px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .chk { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 15px; cursor: pointer; }
+  .chk input { width: 20px; height: 20px; accent-color: var(--tape); }
+  .btn {
+    font-family: 'Archivo', sans-serif; font-weight: 700; font-size: 16px; padding: 14px 22px;
+    border-radius: 10px; border: none; cursor: pointer; width: 100%; margin-top: 10px;
+  }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-primary { background: var(--tape); color: var(--ink); }
+  .btn-dark { background: var(--ink); color: var(--white); }
+  .btn-ghost { background: transparent; color: var(--ink); border: 2px solid var(--line); }
+  .card { background: var(--white); border-radius: 14px; border: 1px solid var(--line); padding: 18px; margin-bottom: 18px; }
+  .card-strong { border: 2px solid var(--ink); }
+  .steps { display: flex; gap: 6px; margin-bottom: 22px; }
+  .step-bar { height: 4px; border-radius: 2px; background: var(--line); }
+  .step-bar.on { background: var(--tape); }
+  .step-lbl { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: .08em; color: var(--steel); margin-top: 5px; }
+  .step-lbl.on { color: var(--ink); }
+  .errbox { background: #FDECEA; border: 1px solid var(--red); color: var(--red); border-radius: 10px; padding: 12px 14px; font-size: 14px; margin-bottom: 16px; word-break: break-word; }
+  .dropzone { display: block; border: 2px dashed var(--steel); border-radius: 14px; padding: 36px 20px; text-align: center; cursor: pointer; background: var(--white); margin-bottom: 16px; }
+  .thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 20px; }
+  .thumb { position: relative; }
+  .thumb img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; border: 2px solid var(--line); }
+  .thumb button { position: absolute; top: 4px; right: 4px; background: var(--ink); color: var(--white); border: none; border-radius: 6px; width: 24px; height: 24px; cursor: pointer; font-size: 12px; }
+  .voltot { background: var(--ink); border-radius: 14px; padding: 18px 20px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: baseline; }
+  .inv-row { display: grid; grid-template-columns: 1fr 56px 72px 30px; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .inv-row input { padding: 8px 6px; font-size: 14px; text-align: center; }
+  .inv-del { background: transparent; border: none; color: var(--red); font-size: 16px; cursor: pointer; }
+  .costo-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; border-bottom: 1px solid var(--line); }
+  .hidden { display: none !important; }
+  .pulse { animation: pulse 1.2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
+  @media (prefers-reduced-motion: reduce) { .pulse { animation: none; } }
+
+  /* ---- Documento PDF ---- */
+  .print-only { display: none; }
+  @media print {
+    body > header, body > .tape-strip, body > main { display: none !important; }
+    body { background: #fff; }
+    .print-only { display: block; padding: 10mm 6mm; color: #141E28; font-family: 'Archivo', Arial, sans-serif; }
+    .p-head { display: flex; justify-content: space-between; align-items: flex-start; }
+    .p-ditta { font-family: 'Archivo Black', sans-serif; font-size: 20px; margin-top: 4px; }
+    .p-title { font-family: 'Archivo Black', sans-serif; font-size: 16px; }
+    .p-small { font-size: 10px; color: #555; line-height: 1.5; }
+    .p-tape { height: 6px; margin: 10px 0 14px; background: repeating-linear-gradient(90deg, #FFC400 0 30px, #141E28 30px 34px); }
+    .p-sec { font-family: 'Archivo Black', sans-serif; font-size: 11px; letter-spacing: .08em; margin: 16px 0 6px; }
+    .p-info { width: 100%; font-size: 11px; border-collapse: collapse; }
+    .p-info td { padding: 3px 8px 3px 0; }
+    .p-info td:first-child { color: #777; width: 130px; text-transform: uppercase; font-size: 9px; letter-spacing: .06em; }
+    .p-tab { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .p-tab th, .p-tab td { padding: 5px 8px; border-bottom: 1px solid #ddd; }
+    .p-tab th { font-size: 9px; letter-spacing: .06em; text-transform: uppercase; color: #777; }
+    .p-tab td:nth-child(n+3), .p-tab th:nth-child(n+3) { text-align: right; }
+    .p-note { font-size: 9px; color: #777; margin-top: 18px; line-height: 1.5; }
+    .p-firma { display: flex; justify-content: space-between; margin-top: 28px; font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="head-in">
+    <div>
+      <div class="display" style="font-size:22px;color:#fff;line-height:1">METRO<span style="color:var(--tape)">CUBO</span></div>
+      <div class="mono" style="font-size:10px;color:var(--steel);letter-spacing:.14em;margin-top:3px">PREVENTIVO AI · m³</div>
+    </div>
+    <button id="btnTariffe" style="background:transparent;border:1px solid var(--steel);color:#fff;border-radius:8px;padding:8px 12px;font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer">TARIFFE</button>
+  </div>
+</header>
+<div class="tape-strip"></div>
+
+<main>
+  <!-- PANNELLO DITTA + TARIFFE -->
+  <section id="pnlTariffe" class="card card-strong hidden">
+    <div class="display" style="font-size:15px;margin-bottom:14px">LA TUA DITTA</div>
+    <label class="fld"><div class="field-label">Nome ditta</div><input type="text" id="c_nome" placeholder="Traslochi Rossi S.r.l."></label>
+    <div class="grid2">
+      <label class="fld"><div class="field-label">P. IVA</div><input type="text" id="c_piva" placeholder="IT01234567890"></label>
+      <label class="fld"><div class="field-label">Telefono</div><input type="text" id="c_tel" placeholder="011 1234567"></label>
+    </div>
+    <label class="fld"><div class="field-label">Email</div><input type="text" id="c_email" placeholder="info@traslochirossi.it"></label>
+    <label class="fld"><div class="field-label">Logo (appare sul PDF)</div>
+      <label class="btn btn-ghost" style="margin-top:0;display:block;text-align:center">
+        <input type="file" id="c_logoInput" accept="image/*" style="display:none">
+        <span id="c_logoLbl">Carica logo</span>
+      </label>
+      <img id="c_logoPreview" class="hidden" alt="Logo ditta" style="max-height:60px;margin-top:10px;border-radius:6px">
+    </label>
+    <div class="tape-div"></div>
+    <div class="display" style="font-size:15px;margin-bottom:14px">TARIFFE</div>
+    <label class="fld"><div class="field-label">Tariffa base (€ / m³)</div><input type="number" id="t_euroM3" value="35"></label>
+    <label class="fld"><div class="field-label">Costo distanza (€ / km)</div><input type="number" id="t_euroKm" value="1.2" step="0.1"></label>
+    <label class="fld"><div class="field-label">Supplemento piano senza ascensore (€)</div><input type="number" id="t_piano" value="30"></label>
+    <label class="fld"><div class="field-label">Imballaggio (€ / m³)</div><input type="number" id="t_imballo" value="8"></label>
+    <label class="fld"><div class="field-label">Smontaggio/rimontaggio forfait (€)</div><input type="number" id="t_smontaggio" value="150"></label>
+    <button class="btn btn-dark" onclick="salvaDitta()">Salva profilo e tariffe</button>
+  </section>
+
+  <!-- STEP INDICATOR -->
+  <div class="steps" id="stepBar"></div>
+
+  <div id="errore" class="errbox hidden"></div>
+
+  <!-- STEP 0: DATI -->
+  <section id="step0">
+    <h1>Dati del trasloco</h1>
+    <p class="sub">Compila i dati. Poi: foto delle stanze oppure inventario manuale.</p>
+    <div class="tape-div"></div>
+    <label class="fld"><div class="field-label">Nome cliente</div><input type="text" id="d_cliente" placeholder="Mario Rossi"></label>
+    <div class="grid2">
+      <label class="fld"><div class="field-label">Partenza</div><input type="text" id="d_partenza" placeholder="Torino"></label>
+      <label class="fld"><div class="field-label">Destinazione</div><input type="text" id="d_destinazione" placeholder="Milano"></label>
+    </div>
+    <label class="fld"><div class="field-label">Distanza (km)</div><input type="number" id="d_km" placeholder="140"></label>
+    <div class="grid2">
+      <label class="fld"><div class="field-label">Piano partenza</div><input type="number" id="d_pianoP" value="0" min="0"></label>
+      <label class="fld"><div class="field-label">Piano destinazione</div><input type="number" id="d_pianoD" value="0" min="0"></label>
+    </div>
+    <label class="chk"><input type="checkbox" id="d_ascP" checked> Ascensore alla partenza</label>
+    <label class="chk"><input type="checkbox" id="d_ascD" checked> Ascensore a destinazione</label>
+    <label class="chk"><input type="checkbox" id="d_imballo"> Servizio imballaggio</label>
+    <label class="chk"><input type="checkbox" id="d_smontaggio"> Smontaggio e rimontaggio mobili</label>
+    <button class="btn btn-primary" onclick="vai(1)">Avanti →</button>
+  </section>
+
+  <!-- STEP 1: FOTO -->
+  <section id="step1" class="hidden">
+    <h1>Foto delle stanze</h1>
+    <p class="sub">L'AI riconosce i singoli mobili e stima il volume di ciascuno. Max 8 foto.</p>
+    <div class="tape-div"></div>
+    <label class="dropzone">
+      <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,image/*" multiple style="display:none">
+      <div class="display" style="font-size:32px;color:var(--tape)">+</div>
+      <div style="font-weight:700;font-size:15px">Aggiungi foto</div>
+      <div class="mono" style="font-size:11px;color:var(--steel);margin-top:4px"><span id="fotoCount">0</span>/8 caricate</div>
+    </label>
+    <div class="thumbs" id="thumbs"></div>
+    <button class="btn btn-primary" id="btnAnalizza" disabled onclick="analizza()">Analizza mobili con AI</button>
+    <button class="btn btn-dark" onclick="vai(3)">Salta le foto → inventario manuale</button>
+    <button class="btn btn-ghost" onclick="vai(0)">← Torna ai dati</button>
+  </section>
+
+  <!-- STEP 2: ANALISI -->
+  <section id="step2" class="hidden" style="text-align:center;padding:60px 0">
+    <div class="display pulse" style="font-size:40px;color:var(--tape)">m³</div>
+    <div class="display" style="font-size:20px;margin-top:12px">Analisi in corso…</div>
+    <p class="sub" id="progresso">L'AI sta riconoscendo i mobili nelle foto.</p>
+  </section>
+
+  <!-- STEP 3: INVENTARIO -->
+  <section id="step3" class="hidden">
+    <h1>Inventario</h1>
+    <p class="sub" id="invSub">Correggi quantità e volumi, o aggiungi pezzi.</p>
+    <div class="tape-div"></div>
+    <div class="voltot">
+      <span class="mono" style="font-size:11px;letter-spacing:.12em;color:var(--steel)">VOLUME TOTALE</span>
+      <span class="display" style="font-size:34px;color:var(--tape)"><span id="volTot">0.0</span><span style="font-size:16px;color:#fff"> m³</span></span>
+    </div>
+    <div id="invListe"></div>
+    <div class="card card-strong">
+      <div class="display" style="font-size:13px;margin-bottom:10px">AGGIUNGI PEZZO</div>
+      <label class="fld"><div class="field-label">Stanza</div><input type="text" id="m_stanza" value="Generale"></label>
+      <label class="fld"><div class="field-label">Mobile (cubature standard)</div><select id="m_catalogo"></select></label>
+      <button class="btn btn-dark" onclick="aggiungiDaCatalogo()">+ Aggiungi all'inventario</button>
+    </div>
+    <button class="btn btn-primary" id="btnPreventivo" onclick="vai(4)">Genera preventivo →</button>
+    <button class="btn btn-ghost" onclick="vai(1)">← Torna alle foto</button>
+  </section>
+
+  <!-- STEP 4: PREVENTIVO -->
+  <section id="step4" class="hidden">
+    <h1>Preventivo</h1>
+    <p class="sub" id="prevSub"></p>
+    <div class="tape-div"></div>
+    <div style="background:var(--ink);border-radius:16px;padding:26px 22px;margin-bottom:18px;text-align:center">
+      <div class="mono" style="font-size:11px;letter-spacing:.14em;color:var(--steel)" id="prevVoci">VOLUME</div>
+      <div class="display" style="font-size:56px;color:var(--tape);line-height:1.1"><span id="prevVol">0.0</span><span style="font-size:24px;color:#fff"> m³</span></div>
+    </div>
+    <div class="card">
+      <div class="display" style="font-size:14px;margin-bottom:12px">VOCI DI COSTO</div>
+      <div id="costiList"></div>
+      <div style="display:flex;justify-content:space-between;padding-top:14px;align-items:baseline">
+        <span class="display" style="font-size:16px">TOTALE STIMATO</span>
+        <span class="display" style="font-size:26px;color:var(--green)" id="totale"></span>
+      </div>
+      <div class="mono" style="font-size:11px;color:var(--steel);text-align:right;margin-top:2px" id="fascia"></div>
+    </div>
+    <p style="font-size:12px;color:var(--steel);line-height:1.5">Stima basata sull'inventario. Il preventivo definitivo va confermato dalla ditta dopo verifica. IVA esclusa.</p>
+    <button class="btn btn-primary" onclick="scaricaPDF()">Scarica preventivo PDF</button>
+    <button class="btn btn-dark" onclick="inviaWhatsApp()">Invia via WhatsApp</button>
+    <button class="btn btn-ghost" onclick="vai(3)">← Modifica inventario</button>
+    <button class="btn btn-ghost" onclick="nuovo()">Nuovo preventivo</button>
+  </section>
+</main>
+
+<!-- DOCUMENTO STAMPABILE (visibile solo in stampa/PDF) -->
+<div id="printDoc" class="print-only">
+  <div class="p-head">
+    <div>
+      <img id="p_logo" alt="" style="max-height:64px;display:none">
+      <div class="p-ditta" id="p_dittaNome"></div>
+      <div class="p-small" id="p_dittaDati"></div>
+    </div>
+    <div style="text-align:right">
+      <div class="p-title">PREVENTIVO TRASLOCO</div>
+      <div class="p-small" id="p_data"></div>
+      <div class="p-small" id="p_numero"></div>
+    </div>
+  </div>
+  <div class="p-tape"></div>
+  <table class="p-info"><tbody id="p_infoBody"></tbody></table>
+  <div class="p-sec">INVENTARIO</div>
+  <table class="p-tab">
+    <thead><tr><th style="text-align:left">Stanza</th><th style="text-align:left">Mobile</th><th>Q.tà</th><th>m³/pz</th><th>m³ tot</th></tr></thead>
+    <tbody id="p_invBody"></tbody>
+    <tfoot><tr><td colspan="4" style="text-align:right;font-weight:700">VOLUME TOTALE</td><td style="text-align:right;font-weight:700" id="p_volTot"></td></tr></tfoot>
+  </table>
+  <div class="p-sec">VOCI DI COSTO</div>
+  <table class="p-tab">
+    <tbody id="p_costiBody"></tbody>
+    <tfoot><tr><td style="text-align:right;font-weight:700;font-size:14px">TOTALE STIMATO (IVA esclusa)</td><td style="text-align:right;font-weight:700;font-size:14px" id="p_totale"></td></tr></tfoot>
+  </table>
+  <p class="p-note">Preventivo indicativo basato sull'inventario dichiarato/rilevato. Valido 30 giorni. Il prezzo definitivo sarà confermato dalla ditta previa verifica di accessi, volumi e servizi richiesti.</p>
+  <div class="p-firma">
+    <div>Firma per accettazione<br><br>_______________________</div>
+    <div style="text-align:right" id="p_dittaFirma"></div>
+  </div>
+</div>
+
+<script>
+// ---------------- stato ----------------
+let step = 0;
+let foto = [];       // { base64, mediaType, preview }
+let items = [];      // { id, stanza, nome, qta, volume }
+let confidenza = null;
+let _uid = 0;
+const uid = () => ++_uid;
+
+const CATALOGO = [
+  ["Armadio 3 ante", 1.8], ["Armadio 2 ante", 1.2], ["Letto matrimoniale", 1.5],
+  ["Letto singolo", 0.8], ["Materasso matrimoniale", 0.5], ["Divano 3 posti", 1.5],
+  ["Divano 2 posti", 1.0], ["Poltrona", 0.6], ["Tavolo da pranzo", 0.8],
+  ["Sedia", 0.15], ["Frigorifero", 0.8], ["Lavatrice", 0.4],
+  ["Lavastoviglie", 0.4], ["Cucina componibile (a metro)", 0.6], ["Credenza", 1.0],
+  ["Libreria", 0.8], ["Scrivania", 0.6], ["Comò", 0.6],
+  ["Comodino", 0.2], ["TV + mobile TV", 0.4], ["Scatola standard", 0.1],
+  ["Bicicletta", 0.3],
+];
+
+const STEPS = ["DATI", "FOTO", "AI", "INVENTARIO", "PREZZO"];
+
+// ---------------- utilità ----------------
+const $ = (id) => document.getElementById(id);
+const euro = (n) => n.toLocaleString("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+const volumeTotale = () => items.reduce((s, it) => s + it.volume * it.qta, 0);
+
+function setErrore(msg) {
+  const el = $("errore");
+  if (!msg) { el.classList.add("hidden"); el.textContent = ""; return; }
+  el.textContent = msg;
+  el.classList.remove("hidden");
+}
+
+function vai(n) {
+  step = n;
+  setErrore("");
+  for (let i = 0; i <= 4; i++) $("step" + i).classList.toggle("hidden", i !== n);
+  renderSteps();
+  if (n === 3) renderInventario();
+  if (n === 4) renderPreventivo();
+  window.scrollTo(0, 0);
+}
+
+function renderSteps() {
+  $("stepBar").innerHTML = STEPS.map((s, i) =>
+    `<div style="flex:1"><div class="step-bar ${i <= step ? "on" : ""}"></div><div class="step-lbl ${i <= step ? "on" : ""}">${s}</div></div>`
+  ).join("");
+}
+
+function nuovo() {
+  foto = []; items = []; confidenza = null;
+  renderThumbs();
+  vai(0);
+}
+
+// ---------------- foto ----------------
+function fileToImageData(file, maxDim = 1024) {
+  return new Promise((resolve, reject) => {
+    const rawFallback = () => {
+      const ok = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+      if (!ok.includes(file.type)) { reject(new Error(`formato "${file.type || "sconosciuto"}" non supportato — usa JPG o PNG`)); return; }
+      if (file.size > 4.5 * 1048576) { reject(new Error(`foto troppo pesante (${(file.size / 1048576).toFixed(1)}MB)`)); return; }
+      const r = new FileReader();
+      r.onload = (e) => resolve({ base64: String(e.target.result).split(",")[1], mediaType: file.type });
+      r.onerror = () => reject(new Error("lettura file fallita"));
+      r.readAsDataURL(file);
+    };
+    let url;
+    try { url = URL.createObjectURL(file); } catch { rawFallback(); return; }
+    const img = new Image();
+    img.onload = () => {
+      try {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const s = maxDim / Math.max(width, height);
+          width = Math.round(width * s); height = Math.round(height * s);
+        }
+        const c = document.createElement("canvas");
+        c.width = width; c.height = height;
+        c.getContext("2d").drawImage(img, 0, 0, width, height);
+        const dataUrl = c.toDataURL("image/jpeg", 0.82);
+        URL.revokeObjectURL(url);
+        resolve({ base64: dataUrl.split(",")[1], mediaType: "image/jpeg" });
+      } catch { URL.revokeObjectURL(url); rawFallback(); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rawFallback(); };
+    img.src = url;
+  });
+}
+
+$("fileInput").addEventListener("change", async (e) => {
+  setErrore("");
+  const files = Array.from(e.target.files || []);
+  e.target.value = "";
+  for (const f of files.slice(0, 8 - foto.length)) {
+    try {
+      const { base64, mediaType } = await fileToImageData(f);
+      foto.push({ base64, mediaType, preview: `data:${mediaType};base64,${base64}` });
+    } catch (err) {
+      setErrore(`Foto "${f.name || "senza nome"}": ${err.message}`);
+    }
+  }
+  renderThumbs();
+});
+
+function renderThumbs() {
+  $("fotoCount").textContent = foto.length;
+  $("btnAnalizza").disabled = foto.length === 0;
+  $("btnAnalizza").textContent = foto.length > 0 ? `Analizza mobili con AI → ${foto.length} foto` : "Analizza mobili con AI";
+  $("thumbs").innerHTML = foto.map((f, i) =>
+    `<div class="thumb"><img src="${f.preview}" alt="Stanza ${i + 1}"><button onclick="rimuoviFoto(${i})" aria-label="Rimuovi">✕</button></div>`
+  ).join("");
+}
+function rimuoviFoto(i) { foto.splice(i, 1); renderThumbs(); }
+
+// ---------------- analisi AI ----------------
+async function analizzaUnaFoto(f) {
+  const res = await fetch("/api/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ image: f.base64, mediaType: f.mediaType }),
+  });
+  const raw = await res.text();
+  let data;
+  try { data = JSON.parse(raw); } catch { throw new Error(`risposta non valida: ${raw.slice(0, 120)}`); }
+  if (!res.ok || data.error) throw new Error(data.error || `errore ${res.status}`);
+  return data; // { n, m: [[nome,qta,vol]], c }
+}
+
+async function analizza() {
+  setErrore("");
+  vai(2);
+  const nuovi = [];
+  const errori = [];
+  let conf = "alta";
+  for (let i = 0; i < foto.length; i++) {
+    $("progresso").textContent = `Foto ${i + 1} di ${foto.length}…`;
+    try {
+      const p = await analizzaUnaFoto(foto[i]);
+      const nomeStanza = p.n || `Stanza ${i + 1}`;
+      for (const [nome, qta, vol] of p.m || []) {
+        nuovi.push({ id: uid(), stanza: nomeStanza, nome, qta: Number(qta) || 1, volume: Number(vol) || 0 });
+      }
+      if (p.c === "bassa") conf = "bassa";
+      else if (p.c === "media" && conf !== "bassa") conf = "media";
+    } catch (err) {
+      errori.push(`foto ${i + 1}: ${err.message}`);
+    }
+  }
+  if (nuovi.length === 0) {
+    vai(1);
+    setErrore(`Analisi fallita — ${errori.join(" · ") || "nessun mobile riconosciuto"}.`);
+    return;
+  }
+  items = nuovi;
+  confidenza = conf;
+  vai(3);
+  if (errori.length > 0) setErrore(`Alcune foto non analizzate: ${errori.join(" · ")}`);
+}
+
+// ---------------- inventario ----------------
+function renderInventario() {
+  $("volTot").textContent = volumeTotale().toFixed(1);
+  $("invSub").textContent = (confidenza ? `Riconosciuti dall'AI (confidenza ${confidenza}). ` : "") + "Correggi quantità e volumi, o aggiungi pezzi.";
+  $("btnPreventivo").disabled = items.length === 0;
+  const stanze = [...new Set(items.map((i) => i.stanza))];
+  $("invListe").innerHTML = stanze.map((st) => `
+    <div class="card">
+      <div class="display" style="font-size:13px;margin-bottom:10px;text-transform:uppercase">${st}</div>
+      ${items.filter((i) => i.stanza === st).map((it) => `
+        <div class="inv-row">
+          <span style="font-size:14px;font-weight:600">${it.nome}</span>
+          <input type="number" min="1" value="${it.qta}" aria-label="Quantità" onchange="aggiorna(${it.id},'qta',this.value)">
+          <input type="number" step="0.1" min="0" value="${it.volume}" aria-label="Volume m³" class="mono" onchange="aggiorna(${it.id},'volume',this.value)">
+          <button class="inv-del" onclick="rimuovi(${it.id})" aria-label="Rimuovi">✕</button>
+        </div>`).join("")}
+    </div>`).join("");
+}
+function aggiorna(id, campo, val) {
+  const it = items.find((x) => x.id === id);
+  if (!it) return;
+  it[campo] = campo === "qta" ? (parseInt(val) || 1) : (parseFloat(val) || 0);
+  $("volTot").textContent = volumeTotale().toFixed(1);
+}
+function rimuovi(id) {
+  items = items.filter((x) => x.id !== id);
+  renderInventario();
+}
+function aggiungiDaCatalogo() {
+  const idx = parseInt($("m_catalogo").value);
+  const [nome, vol] = CATALOGO[idx];
+  items.push({ id: uid(), stanza: $("m_stanza").value || "Generale", nome, qta: 1, volume: vol });
+  renderInventario();
+}
+
+// ---------------- preventivo ----------------
+function tariffe() {
+  return {
+    euroM3: parseFloat($("t_euroM3").value) || 0,
+    euroKm: parseFloat($("t_euroKm").value) || 0,
+    piano: parseFloat($("t_piano").value) || 0,
+    imballo: parseFloat($("t_imballo").value) || 0,
+    smontaggio: parseFloat($("t_smontaggio").value) || 0,
+  };
+}
+function renderPreventivo() {
+  const t = tariffe();
+  const vol = volumeTotale();
+  const voci = [{ label: `Trasporto ${vol.toFixed(1)} m³ × ${euro(t.euroM3)}/m³`, val: vol * t.euroM3 }];
+  const km = parseFloat($("d_km").value) || 0;
+  if (km > 0) voci.push({ label: `Distanza ${km} km × ${t.euroKm.toFixed(2)} €/km`, val: km * t.euroKm });
+  const pP = parseInt($("d_pianoP").value) || 0;
+  const pD = parseInt($("d_pianoD").value) || 0;
+  if (!$("d_ascP").checked && pP > 0) voci.push({ label: `Piano ${pP}° senza ascensore (partenza)`, val: pP * t.piano });
+  if (!$("d_ascD").checked && pD > 0) voci.push({ label: `Piano ${pD}° senza ascensore (arrivo)`, val: pD * t.piano });
+  if ($("d_imballo").checked) voci.push({ label: `Imballaggio ${vol.toFixed(1)} m³ × ${euro(t.imballo)}/m³`, val: vol * t.imballo });
+  if ($("d_smontaggio").checked) voci.push({ label: "Smontaggio e rimontaggio mobili", val: t.smontaggio });
+  const tot = voci.reduce((s, v) => s + v.val, 0);
+  ultimeVoci = voci;
+  ultimoTot = tot;
+
+  $("prevSub").textContent = `${$("d_cliente").value || "Cliente"} · ${$("d_partenza").value || "—"} → ${$("d_destinazione").value || "—"}`;
+  $("prevVol").textContent = vol.toFixed(1);
+  $("prevVoci").textContent = `VOLUME · ${items.length} VOCI`;
+  $("costiList").innerHTML = voci.map((v) =>
+    `<div class="costo-row"><span style="padding-right:12px">${v.label}</span><span class="mono" style="font-weight:600;white-space:nowrap">${euro(v.val)}</span></div>`
+  ).join("");
+  $("totale").textContent = euro(tot);
+  $("fascia").textContent = `fascia ${euro(tot * 0.95)} – ${euro(tot * 1.1)}`;
+}
+
+// ---------------- profilo ditta ----------------
+let logoData = null;
+let ultimeVoci = [];
+let ultimoTot = 0;
+
+function salvaDitta() {
+  const profilo = {
+    nome: $("c_nome").value, piva: $("c_piva").value, tel: $("c_tel").value, email: $("c_email").value,
+    logo: logoData,
+    tariffe: { euroM3: $("t_euroM3").value, euroKm: $("t_euroKm").value, piano: $("t_piano").value, imballo: $("t_imballo").value, smontaggio: $("t_smontaggio").value },
+  };
+  try { localStorage.setItem("metrocubo_ditta", JSON.stringify(profilo)); } catch {}
+  $("pnlTariffe").classList.add("hidden");
+}
+
+function caricaDitta() {
+  let p = null;
+  try { p = JSON.parse(localStorage.getItem("metrocubo_ditta") || "null"); } catch {}
+  if (!p) return;
+  $("c_nome").value = p.nome || ""; $("c_piva").value = p.piva || "";
+  $("c_tel").value = p.tel || ""; $("c_email").value = p.email || "";
+  if (p.logo) { logoData = p.logo; mostraLogo(); }
+  if (p.tariffe) {
+    $("t_euroM3").value = p.tariffe.euroM3 || 35; $("t_euroKm").value = p.tariffe.euroKm || 1.2;
+    $("t_piano").value = p.tariffe.piano || 30; $("t_imballo").value = p.tariffe.imballo || 8;
+    $("t_smontaggio").value = p.tariffe.smontaggio || 150;
+  }
+}
+
+function mostraLogo() {
+  const img = $("c_logoPreview");
+  img.src = logoData; img.classList.remove("hidden");
+  $("c_logoLbl").textContent = "Cambia logo";
+}
+
+$("c_logoInput").addEventListener("change", (e) => {
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = (ev) => {
+    const img = new Image();
+    img.onload = () => {
+      const maxH = 120, s = Math.min(1, maxH / img.height);
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      logoData = c.toDataURL("image/png");
+      mostraLogo();
+    };
+    img.src = ev.target.result;
+  };
+  r.readAsDataURL(f);
+});
+
+// ---------------- PDF e WhatsApp ----------------
+function compilaDocumento() {
+  const nome = $("c_nome").value || "La tua ditta";
+  const dati = [$("c_piva").value && "P.IVA " + $("c_piva").value, $("c_tel").value, $("c_email").value].filter(Boolean).join(" · ");
+  $("p_dittaNome").textContent = nome;
+  $("p_dittaDati").textContent = dati;
+  $("p_dittaFirma").textContent = nome;
+  const lg = $("p_logo");
+  if (logoData) { lg.src = logoData; lg.style.display = "block"; } else { lg.style.display = "none"; }
+  const oggi = new Date();
+  $("p_data").textContent = "Data: " + oggi.toLocaleDateString("it-IT");
+  $("p_numero").textContent = "N. " + oggi.getFullYear() + "-" + String(Date.now()).slice(-5);
+
+  const info = [
+    ["Cliente", $("d_cliente").value || "—"],
+    ["Partenza", `${$("d_partenza").value || "—"} · piano ${$("d_pianoP").value || 0} · ascensore ${$("d_ascP").checked ? "sì" : "no"}`],
+    ["Destinazione", `${$("d_destinazione").value || "—"} · piano ${$("d_pianoD").value || 0} · ascensore ${$("d_ascD").checked ? "sì" : "no"}`],
+    ["Distanza", ($("d_km").value || 0) + " km"],
+  ];
+  $("p_infoBody").innerHTML = info.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("");
+
+  $("p_invBody").innerHTML = items.map((it) =>
+    `<tr><td>${it.stanza}</td><td>${it.nome}</td><td>${it.qta}</td><td>${it.volume.toFixed(2)}</td><td>${(it.volume * it.qta).toFixed(2)}</td></tr>`
+  ).join("");
+  $("p_volTot").textContent = volumeTotale().toFixed(1) + " m³";
+
+  $("p_costiBody").innerHTML = ultimeVoci.map((v) =>
+    `<tr><td>${v.label}</td><td style="text-align:right">${euro(v.val)}</td></tr>`
+  ).join("");
+  $("p_totale").textContent = euro(ultimoTot);
+}
+
+function scaricaPDF() {
+  compilaDocumento();
+  window.print(); // su telefono: Condividi/Stampa → Salva come PDF
+}
+
+function inviaWhatsApp() {
+  const t = [
+    `*Preventivo trasloco — ${$("c_nome").value || "MetroCubo"}*`,
+    `Cliente: ${$("d_cliente").value || "—"}`,
+    `${$("d_partenza").value || "—"} → ${$("d_destinazione").value || "—"} (${$("d_km").value || 0} km)`,
+    `Volume stimato: ${volumeTotale().toFixed(1)} m³`,
+    ...ultimeVoci.map((v) => `• ${v.label}: ${euro(v.val)}`),
+    `*Totale stimato: ${euro(ultimoTot)}* (IVA esclusa)`,
+    `Preventivo indicativo, valido 30 giorni.`,
+  ].join("\n");
+  window.open("https://wa.me/?text=" + encodeURIComponent(t), "_blank");
+}
+
+// ---------------- init ----------------
+$("btnTariffe").addEventListener("click", () => $("pnlTariffe").classList.toggle("hidden"));
+caricaDitta();
+$("m_catalogo").innerHTML = CATALOGO.map(([n, v], i) => `<option value="${i}">${n} — ${v} m³</option>`).join("");
+renderSteps();
+</script>
+</body>
+</html>
